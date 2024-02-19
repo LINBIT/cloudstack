@@ -37,6 +37,9 @@ import org.apache.cloudstack.utils.qemu.QemuImg;
 import org.apache.log4j.Logger;
 import org.joda.time.Duration;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+
 public class LinstorStoragePool implements KVMStoragePool {
     private static final Logger s_logger = Logger.getLogger(LinstorStoragePool.class);
     private final String _uuid;
@@ -272,7 +275,7 @@ public class LinstorStoragePool implements KVMStoragePool {
         return checkHostUpToDateAndConnected(hostName);
     }
 
-    private String executeDrbdSetupStatus(OutputInterpreter.AllLinesParser parser) {
+    private String executeDrbdSetupStatus(AllLinesParserLinstor parser) {
         Script sc = new Script("drbdsetup", Duration.millis(HeartBeatUpdateTimeout), s_logger);
         sc.add("status");
         sc.add("--json");
@@ -297,7 +300,7 @@ public class LinstorStoragePool implements KVMStoragePool {
         return false;
     }
 
-    private String executeDrbdEventsNow(OutputInterpreter.AllLinesParser parser) {
+    private String executeDrbdEventsNow(AllLinesParserLinstor parser) {
         Script sc = new Script("drbdsetup", Duration.millis(HeartBeatUpdateTimeout), s_logger);
         sc.add("events2");
         sc.add("--now");
@@ -314,7 +317,7 @@ public class LinstorStoragePool implements KVMStoragePool {
 
     private boolean checkHostUpToDateAndConnected(String hostName) {
         s_logger.trace(String.format("checkHostUpToDateAndConnected: %s/%s", localNodeName, hostName));
-        OutputInterpreter.AllLinesParser parser = new OutputInterpreter.AllLinesParser();
+        AllLinesParserLinstor parser = new AllLinesParserLinstor();
 
         if (localNodeName.equalsIgnoreCase(hostName)) {
             String res = executeDrbdEventsNow(parser);
@@ -341,5 +344,29 @@ public class LinstorStoragePool implements KVMStoragePool {
     public Boolean vmActivityCheck(HAStoragePool pool, HostTO host, Duration activityScriptTimeout, String volumeUUIDListString, String vmActivityCheckPath, long duration) {
         s_logger.trace(String.format("Linstor.vmActivityCheck: %s, %s", pool.getPoolIp(), host.getPrivateNetwork().getIp()));
         return checkingHeartBeat(pool, host);
+    }
+
+    public static class AllLinesParserLinstor extends OutputInterpreter {
+        String allLines = null;
+
+        @Override
+        public String interpret(BufferedReader reader) throws IOException {
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                builder.append(line).append("\n");
+            }
+            allLines = builder.toString();
+            return null;
+        }
+
+        public String getLines() {
+            return allLines;
+        }
+
+        @Override
+        public boolean drain() {
+            return true;
+        }
     }
 }
