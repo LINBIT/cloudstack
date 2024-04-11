@@ -209,9 +209,14 @@ public abstract class MultipathSCSIAdapterBase implements StorageAdaptor {
     public boolean disconnectPhysicalDisk(String volumePath, KVMStoragePool pool) {
         LOGGER.debug(String.format("disconnectPhysicalDiskByPath(volumePath,pool) called with args (%s, %s) START", volumePath, pool.getUuid()));
         AddressInfo address = this.parseAndValidatePath(volumePath);
+        if (address.getAddress() == null) {
+            LOGGER.debug(String.format("disconnectPhysicalDiskByPath(volumePath,pool) returning FALSE, volume path has no address field", volumePath, pool.getUuid()));
+            return false;
+        }
         ScriptResult result = runScript(disconnectScript, 60000L, address.getAddress().toLowerCase());
         if (LOGGER.isDebugEnabled()) LOGGER.debug("multipath flush output: " + result.getResult());
-        LOGGER.debug(String.format("disconnectPhysicalDiskByPath(volumePath,pool) called with args (%s, %s) COMPLETE [rc=%s]", volumePath, pool.getUuid(), result.getResult()));        return true;
+        LOGGER.debug(String.format("disconnectPhysicalDiskByPath(volumePath,pool) called with args (%s, %s) COMPLETE [rc=%s]", volumePath, pool.getUuid(), result.getResult()));
+        return true;
     }
 
     @Override
@@ -223,9 +228,14 @@ public abstract class MultipathSCSIAdapterBase implements StorageAdaptor {
     @Override
     public boolean disconnectPhysicalDiskByPath(String localPath) {
         LOGGER.debug(String.format("disconnectPhysicalDiskByPath(localPath) called with args (%s) STARTED", localPath));
+        if (localPath == null || (localPath != null && !localPath.startsWith("/dev/mapper/"))) {
+            LOGGER.debug(String.format("isconnectPhysicalDiskByPath(localPath) returning FALSE, volume path is not a multipath volume: %s", localPath));
+            return false;
+        }
         ScriptResult result = runScript(disconnectScript, 60000L, localPath.replace("/dev/mapper/3", ""));
         if (LOGGER.isDebugEnabled()) LOGGER.debug("multipath flush output: " + result.getResult());
-        LOGGER.debug(String.format("disconnectPhysicalDiskByPath(localPath) called with args (%s) COMPLETE [rc=%s]", localPath, result.getExitCode()));       return true;
+        LOGGER.debug(String.format("disconnectPhysicalDiskByPath(localPath) called with args (%s) COMPLETE [rc=%s]", localPath, result.getExitCode()));
+        return true;
     }
 
     @Override
