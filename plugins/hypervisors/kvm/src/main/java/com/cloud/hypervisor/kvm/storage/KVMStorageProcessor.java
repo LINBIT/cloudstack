@@ -434,6 +434,7 @@ public class KVMStorageProcessor implements StorageProcessor {
                 if (!storagePoolMgr.connectPhysicalDisk(primaryStore.getPoolType(), primaryStore.getUuid(), path, details)) {
                     s_logger.warn("Failed to connect new volume at path: " + path + ", in storage pool id: " + primaryStore.getUuid());
                 }
+                BaseVol.setDispName(template.getName());
 
                 vol = storagePoolMgr.copyPhysicalDisk(BaseVol, path != null ? path : volume.getUuid(), primaryPool, cmd.getWaitInMillSeconds(), null, volume.getPassphrase(), volume.getProvisioningType());
 
@@ -526,6 +527,8 @@ public class KVMStorageProcessor implements StorageProcessor {
             final KVMPhysicalDisk volume = secondaryStoragePool.getPhysicalDisk(srcVolumeName);
 
             volume.setFormat(PhysicalDiskFormat.valueOf(srcFormat.toString()));
+            volume.setDispName(srcVol.getName());
+            volume.setVmName(srcVol.getVmName());
 
             final KVMPhysicalDisk newDisk = storagePoolMgr.copyPhysicalDisk(volume, path != null ? path : volumeName, primaryPool, cmd.getWaitInMillSeconds());
 
@@ -2504,6 +2507,8 @@ public class KVMStorageProcessor implements StorageProcessor {
             }
 
             volume.setFormat(PhysicalDiskFormat.valueOf(srcFormat.toString()));
+            volume.setDispName(srcVol.getName());
+            volume.setVmName(srcVol.getVmName());
 
             String destVolumeName = null;
             if (destPrimaryStore.isManaged()) {
