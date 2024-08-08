@@ -25,8 +25,10 @@ import java.util.List;
 
 public class KVMPhysicalDisk {
     private String path;
-    private String name;
-    private KVMStoragePool pool;
+    private final String name;
+    private final KVMStoragePool pool;
+    private String dispName;
+    private String vmName;
     private boolean useAsTemplate;
 
     public static String RBDStringBuilder(String monHost, int monPort, String authUserName, String authSecret, String image) {
@@ -81,7 +83,9 @@ public class KVMPhysicalDisk {
 
     @Override
     public String toString() {
-        return "KVMPhysicalDisk [path=" + path + ", name=" + name + ", pool=" + pool + ", format=" + format + ", size=" + size + ", virtualSize=" + virtualSize + "]";
+        return "KVMPhysicalDisk [path=" + path + ", name=" + name + ", pool=" + pool +
+                ", format=" + format + ", size=" + size + ", virtualSize=" + virtualSize +
+                ", dispName=" + dispName + ", vmName=" + vmName + "]";
     }
 
     public void setFormat(PhysicalDiskFormat format) {
@@ -135,4 +139,20 @@ public class KVMPhysicalDisk {
     public void setUseAsTemplate() { this.useAsTemplate = true; }
 
     public boolean useAsTemplate() { return this.useAsTemplate; }
+
+    public String getDispName() {
+        return dispName;
+    }
+
+    public void setDispName(String dispName) {
+        this.dispName = dispName;
+    }
+
+    public String getVmName() {
+        return vmName;
+    }
+
+    public void setVmName(String vmName) {
+        this.vmName = vmName;
+    }
 }
