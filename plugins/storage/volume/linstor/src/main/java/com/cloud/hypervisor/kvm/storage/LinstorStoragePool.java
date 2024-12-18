@@ -75,7 +75,7 @@ public class LinstorStoragePool implements KVMStoragePool {
     @Override
     public boolean connectPhysicalDisk(String volumeUuid, Map<String, String> details)
     {
-        return _storageAdaptor.connectPhysicalDisk(volumeUuid, this, details);
+        return _storageAdaptor.connectPhysicalDisk(volumeUuid, this, details, false);
     }
 
     @Override
