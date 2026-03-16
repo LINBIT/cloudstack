@@ -93,7 +93,7 @@ public final class StorPoolCopyVolumeToSecondaryCommandWrapper extends CommandWr
                 PhysicalDiskFormat destFormat = newDisk.getFormat();
                 SP_LOG("StorpoolCopyVolumeToSecondaryCommandWrapper.execute: KVMPhysicalDisk name=%s, format=%s, path=%s, destinationPath=%s " , newDisk.getName(), newDisk.getFormat(), newDisk.getPath(), destPath);
                 QemuImgFile destFile = new QemuImgFile(destPath, destFormat);
-                QemuImg qemu = new QemuImg(cmd.getWaitInMillSeconds());
+                QemuImg qemu = new QemuImg(cmd.getWaitInMillSeconds(), false, true);
                 qemu.convert(srcFile, destFile);
 
                 final File file = new File(destPath);
