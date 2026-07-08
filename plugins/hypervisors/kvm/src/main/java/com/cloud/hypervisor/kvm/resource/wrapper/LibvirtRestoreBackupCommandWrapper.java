@@ -275,9 +275,32 @@ public class LibvirtRestoreBackupCommandWrapper extends CommandWrapper<RestoreBa
             return replaceBlockDeviceWithBackup(storagePoolMgr, volumePool, volumePath, backupPath, timeout, createTargetVolume, size);
         }
 
+        // For NAS-backed incremental backups, the source qcow2 has a backing-file
+        // reference to its parent (set by nasbackup.sh's qemu-img rebase). A plain
+        // rsync would copy only the differential blocks, leaving a volume that
+        // depends on a backing file the primary storage doesn't have. Flatten the
+        // chain via qemu-img convert, which follows the backing-file links and
+        // produces a single self-contained qcow2.
+        if (hasBackingChain(backupPath)) {
+            String[] flattenCmd = new String[] { Script.getExecutableAbsolutePath("qemu-img"), "convert", "-O", "qcow2", backupPath, volumePath };
+            return Script.executeCommandForExitValue(flattenCmd) == 0;
+        }
+
         String[] rsyncCmd = new String[] { Script.getExecutableAbsolutePath("rsync"), "-az", backupPath, volumePath };
         int exitValue = Script.executeCommandForExitValue(rsyncCmd);
         return exitValue == 0;
+    }
+
+    /**
+     * Detects whether a qcow2 file references a parent in its backing-file metadata.
+     * Uses --output=json so the check is robust to qemu-img version differences in the
+     * human-readable output; grep's exit code is the answer (0 = backing file present).
+     */
+    private boolean hasBackingChain(String qcow2Path) {
+        String[] infoCmd = new String[] { Script.getExecutableAbsolutePath("qemu-img"), "info", "--output=json", qcow2Path };
+        String[] grepCmd = new String[] { Script.getExecutableAbsolutePath("grep"), "-q", "\"backing-filename\"" };
+        Pair<Integer, String> result = Script.executePipedCommands(Arrays.asList(infoCmd, grepCmd), 0);
+        return result != null && result.first() == 0;
     }
 
     private boolean replaceBlockDeviceWithBackup(KVMStoragePoolManager storagePoolMgr, PrimaryDataStoreTO volumePool, String volumePath, String backupPath, int timeout, boolean createTargetVolume, Long size) {

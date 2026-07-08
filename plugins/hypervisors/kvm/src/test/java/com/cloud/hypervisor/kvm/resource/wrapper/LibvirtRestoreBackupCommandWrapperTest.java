@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.cloudstack.backup.BackupAnswer;
 import org.apache.cloudstack.backup.RestoreBackupCommand;
@@ -38,6 +39,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.cloud.agent.api.Answer;
@@ -59,6 +61,18 @@ public class LibvirtRestoreBackupCommandWrapperTest {
         wrapper = new LibvirtRestoreBackupCommandWrapper();
         libvirtComputingResource = Mockito.mock(LibvirtComputingResource.class);
         command = Mockito.mock(RestoreBackupCommand.class);
+    }
+
+    /**
+     * "qemu-img info | grep backing-filename" -> exit 1: no backing chain, so the restore
+     * takes the plain rsync path (full backups). "virsh domblklist | ..." -> current device.
+     */
+    private static Pair<Integer, String> pipedCommands(InvocationOnMock invocation) {
+        List<String[]> commands = invocation.getArgument(0);
+        if (commands.get(0)[0].contains("qemu-img")) {
+            return new Pair<>(1, "");
+        }
+        return new Pair<>(0, "vda");
     }
 
     @Test
@@ -95,7 +109,7 @@ public class LibvirtRestoreBackupCommandWrapperTest {
                 scriptMock.when(() -> Script.runSimpleBashScriptForExitValue(anyString()))
                         .thenReturn(0); // Other commands success
                 scriptMock.when(() -> Script.executePipedCommands(anyList(), anyLong()))
-                        .thenReturn(new Pair<>(0, "vda"));
+                        .thenAnswer(LibvirtRestoreBackupCommandWrapperTest::pipedCommands);
 
                 filesMock.when(() -> Files.deleteIfExists(any(Path.class))).thenReturn(true);
 
@@ -222,7 +236,7 @@ public class LibvirtRestoreBackupCommandWrapperTest {
                         .thenAnswer(invocation -> invocation.getArgument(0));
                 scriptMock.when(() ->
                                 Script.executePipedCommands(anyList(), anyLong()))
-                        .thenReturn(new Pair<>(0, "vda")); // Current device
+                        .thenAnswer(LibvirtRestoreBackupCommandWrapperTest::pipedCommands);
 
                 filesMock.when(() -> Files.deleteIfExists(any(Path.class))).thenReturn(true);
 
@@ -482,7 +496,7 @@ public class LibvirtRestoreBackupCommandWrapperTest {
                             return 0; // Other commands success
                         });
                 scriptMock.when(() -> Script.executePipedCommands(anyList(), anyLong()))
-                        .thenReturn(new Pair<>(0, "vda"));
+                        .thenAnswer(LibvirtRestoreBackupCommandWrapperTest::pipedCommands);
 
                 filesMock.when(() -> Files.deleteIfExists(any(Path.class))).thenReturn(true);
 
