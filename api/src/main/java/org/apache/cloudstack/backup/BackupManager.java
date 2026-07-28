@@ -126,6 +126,12 @@ public interface BackupManager extends BackupService, Configurable, PluggableSer
             ConfigKey.Scope.Zone,
             null);
 
+    ConfigKey<Boolean> NASBackupParallelExecution = new ConfigKey<>("Advanced", Boolean.class,
+            "backup.nas.parallel.execution.enabled",
+            "true",
+            "Allow NAS take-backup commands to run in parallel with other backup and delete commands on the KVM host. Disable to force sequential execution.",
+            true, ConfigKey.Scope.Zone);
+
     /**
      * List backup provider offerings
      * @param zoneId zone id

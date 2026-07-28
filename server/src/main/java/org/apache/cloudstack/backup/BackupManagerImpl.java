@@ -1741,7 +1741,8 @@ public class BackupManagerImpl extends ManagerBase implements BackupManager {
                 DefaultMaxProjectBackupStorage,
                 DefaultMaxDomainBackups,
                 DefaultMaxDomainBackupStorage,
-                BackupStorageCapacityThreshold
+                BackupStorageCapacityThreshold,
+                NASBackupParallelExecution
         };
     }
 
