@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - java-linstor client updated to 0.8.0 (LINSTOR REST API 1.29.0)
 
+## [2026-07-30]
+
+### Added
+
+- Support for incremental snapshots on secondary storage backuped snapshots
+
 ## [2026-06-24]
 
 ### Fixed
