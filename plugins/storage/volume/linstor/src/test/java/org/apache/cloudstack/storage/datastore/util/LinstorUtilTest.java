@@ -288,4 +288,34 @@ public class LinstorUtilTest {
                 .collect(Collectors.toList());
         Assert.assertEquals(names, Arrays.asList("nodeA::thinpool", "nodeB::thinpool", "nodeC::thinpool"));
     }
+
+    private DevelopersApi mockApi() {
+        return mock(DevelopersApi.class);
+    }
+
+    @Test
+    public void testGetRestApiVersion() throws ApiException {
+        DevelopersApi ctrl = mockApi();
+        when(ctrl.controllerVersion()).thenReturn(controllerVersion("1.29.1"));
+        Assert.assertEquals("1.29.1", LinstorUtil.getRestApiVersion(ctrl));
+
+        DevelopersApi down = mockApi();
+        when(down.controllerVersion()).thenThrow(new ApiException(503, "unavailable"));
+        Assert.assertNull(LinstorUtil.getRestApiVersion(down));
+    }
+
+    @Test
+    public void testSupportsCloneVolumeSizes() throws ApiException {
+        DevelopersApi newCtrl = mockApi();
+        when(newCtrl.controllerVersion()).thenReturn(controllerVersion("1.29.1"));
+        Assert.assertTrue(LinstorUtil.supportsCloneVolumeSizes(newCtrl));
+
+        DevelopersApi oldCtrl = mockApi();
+        when(oldCtrl.controllerVersion()).thenReturn(controllerVersion("1.29.0"));
+        Assert.assertFalse(LinstorUtil.supportsCloneVolumeSizes(oldCtrl));
+
+        DevelopersApi unreachable = mockApi();
+        when(unreachable.controllerVersion()).thenThrow(new ApiException(503, "unavailable"));
+        Assert.assertFalse(LinstorUtil.supportsCloneVolumeSizes(unreachable));
+    }
 }

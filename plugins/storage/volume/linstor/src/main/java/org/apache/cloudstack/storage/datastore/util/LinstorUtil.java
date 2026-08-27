@@ -127,6 +127,15 @@ public class LinstorUtil {
         return isVersionAtLeast(getRestApiVersion(api), 1, 29, 0);
     }
 
+    /**
+     * Check if the connected controller accepts volume_sizes on a resource-definition clone request
+     * (REST API 1.29.1, LINSTOR 1.35.0). With it the grow happens inside the clone, before an optional
+     * Clone/BalanceAfterClone placement, so it cannot race the balance replica's sync.
+     */
+    public static boolean supportsCloneVolumeSizes(DevelopersApi api) {
+        return isVersionAtLeast(getRestApiVersion(api), 1, 29, 1);
+    }
+
     static boolean isVersionAtLeast(String version, int major, int minor, int patch) {
         if (version == null || version.isEmpty()) {
             return false;
