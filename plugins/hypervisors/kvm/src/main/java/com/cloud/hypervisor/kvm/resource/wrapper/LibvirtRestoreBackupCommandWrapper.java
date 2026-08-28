@@ -377,7 +377,8 @@ public class LibvirtRestoreBackupCommandWrapper extends CommandWrapper<RestoreBa
             virshCmd.add(vmName);
             virshCmd.add(volumePath);
             virshCmd.add(deviceToAttachDiskTo);
-            if (Storage.StoragePoolType.Linstor.equals(volumePool.getPoolType())) {
+            // Linstor volumes are raw block devices; file-based pools hold qcow2 images.
+            if (!Storage.StoragePoolType.Linstor.equals(volumePool.getPoolType())) {
                 virshCmd.add("--subdriver");
                 virshCmd.add("qcow2");
             }

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -542,6 +543,63 @@ public class LibvirtRestoreBackupCommandWrapperTest {
             Assert.assertFalse(backupAnswer.getResult());
             Assert.assertTrue(backupAnswer.getDetails().contains("Failed to create the tmp mount directory for restore"));
         }
+    }
+
+    @Test
+    public void testAttachDiskUsesQcow2SubdriverForFilePool() throws Exception {
+        // 4.22.1.1 (8a2722b02e) inverted this: only Linstor got --subdriver qcow2, although
+        // Linstor volumes are raw block devices and it is the file pools that hold qcow2.
+        when(command.getVmName()).thenReturn("test-vm");
+        when(command.getBackupPath()).thenReturn("backup/path");
+        when(command.getBackupRepoAddress()).thenReturn("192.168.1.100:/backup");
+        when(command.getBackupRepoType()).thenReturn("nfs");
+        // vmExists == null is the "restore as a new disk and attach it to the running VM" path,
+        // the only one that reaches virsh attach-disk
+        when(command.isVmExists()).thenReturn(null);
+        when(command.getDiskType()).thenReturn("datadisk");
+        when(command.getRestoreVolumeSizes()).thenReturn(Arrays.asList(1024L));
+        when(command.getWait()).thenReturn(60);
+        when(command.getVmState()).thenReturn(VirtualMachine.State.Running);
+        PrimaryDataStoreTO primaryDataStore = Mockito.mock(PrimaryDataStoreTO.class);
+        when(primaryDataStore.getPoolType()).thenReturn(Storage.StoragePoolType.NetworkFilesystem);
+        when(command.getRestoreVolumePools()).thenReturn(Arrays.asList(primaryDataStore));
+        when(command.getRestoreVolumePaths()).thenReturn(Arrays.asList("/var/lib/libvirt/images/volume-123"));
+        when(command.getBackupFiles()).thenReturn(Arrays.asList("volume-123"));
+        when(command.getMountTimeout()).thenReturn(30);
+
+        List<String[]> executed = new ArrayList<>();
+        try (MockedStatic<Files> filesMock = mockStatic(Files.class)) {
+            Path tempPath = Mockito.mock(Path.class);
+            when(tempPath.toString()).thenReturn("/tmp/csbackup.abc123");
+            filesMock.when(() -> Files.createTempDirectory(anyString())).thenReturn(tempPath);
+            filesMock.when(() -> Files.deleteIfExists(any(Path.class))).thenReturn(true);
+
+            try (MockedStatic<Script> scriptMock = mockStatic(Script.class)) {
+                scriptMock.when(() -> Script.getExecutableAbsolutePath(anyString()))
+                        .thenAnswer(invocation -> invocation.getArgument(0));
+                scriptMock.when(() -> Script.executeCommand(any(String[].class)))
+                        .thenReturn(null);
+                scriptMock.when(() -> Script.executeCommandForExitValue(any(String[].class)))
+                        .thenAnswer(invocation -> {
+                            executed.add(Arrays.stream(invocation.getArguments()).map(String::valueOf).toArray(String[]::new));
+                            return 0;
+                        });
+                scriptMock.when(() -> Script.runSimpleBashScriptForExitValue(anyString()))
+                        .thenReturn(0);
+                scriptMock.when(() -> Script.executePipedCommands(anyList(), anyLong()))
+                        .thenAnswer(LibvirtRestoreBackupCommandWrapperTest::pipedCommands);
+
+                Answer result = wrapper.execute(command, libvirtComputingResource);
+                Assert.assertTrue(((BackupAnswer) result).getResult());
+            }
+        }
+
+        String[] attach = executed.stream()
+                .filter(args -> Arrays.asList(args).contains("attach-disk"))
+                .findFirst().orElseThrow(() -> new AssertionError("no virsh attach-disk call"));
+        int subdriver = Arrays.asList(attach).indexOf("--subdriver");
+        Assert.assertTrue("qcow2 file pool must attach with --subdriver qcow2: " + String.join(" ", attach), subdriver >= 0);
+        Assert.assertEquals("qcow2", attach[subdriver + 1]);
     }
 
     @Test
