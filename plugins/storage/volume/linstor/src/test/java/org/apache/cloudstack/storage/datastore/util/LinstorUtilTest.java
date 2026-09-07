@@ -126,6 +126,18 @@ public class LinstorUtilTest {
             String snapPath = LinstorUtil.getSnapshotPath(spLVM, "cs-cb32532a-dd8f-47e0-a81c-8a75573d3545", "cs-6c6b4e95");
             Assert.assertEquals(
                 "/dev/mapper/shared-cs--cb32532a--dd8f--47e0--a81c--8a75573d3545_00000_cs--6c6b4e95", snapPath);
+
+            // dashes in the volume group name must be escaped as well (GH issue #14011)
+            StoragePool spLVMThin = new StoragePool();
+            Properties lvmThinProps = new Properties();
+            lvmThinProps.put("StorDriver/StorPoolName", "linstor_pool-lvm-thin/thin");
+            spLVMThin.setProps(lvmThinProps);
+            spLVMThin.setProviderKind(ProviderKind.LVM_THIN);
+            String thinSnapPath = LinstorUtil.getSnapshotPath(spLVMThin,
+                "cs-12fc4055-3985-4025-8eb5-d6fd53effe37", "cs-d7aea646-5f40-46a2-b9dc-77e41ea29336");
+            Assert.assertEquals(
+                "/dev/mapper/linstor_pool--lvm--thin-cs--12fc4055--3985--4025--8eb5--d6fd53effe37_00000_cs--d7aea646--5f40--46a2--b9dc--77e41ea29336",
+                thinSnapPath);
         }
 
         {
